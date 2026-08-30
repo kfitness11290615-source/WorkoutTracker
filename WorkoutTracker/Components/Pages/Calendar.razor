@@ -1,0 +1,181 @@
+@page "/calendar"
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<AppDbContext> DbFactory
+@using Microsoft.EntityFrameworkCore
+@using WorkoutTracker.Data
+
+<PageTitle>カレンダー</PageTitle>
+
+<div class="calendar-container">
+    <div class="header">
+        <button class="nav-btn" @onclick="PrevMonth"><span class="icon">&#9664;</span></button>
+        <h2>@_displayMonth.ToString("yyyy年 M月")</h2>
+        <button class="nav-btn" @onclick="NextMonth"><span class="icon">&#9654;</span></button>
+    </div>
+
+    <div class="grid">
+        @foreach (var dayName in new[] { "日", "月", "火", "水", "木", "金", "土" })
+        {
+            <div class="day-name">@dayName</div>
+        }
+        @foreach (var date in _datesInGrid)
+        {
+            if (date.Month == _displayMonth.Month)
+            {
+                var isToday = date.Date == DateTime.Today;
+                var hasRecord = _trainingDates.Contains(date.Date);
+                <button class="date-cell @(isToday ? "today" : "") @(hasRecord ? "has-record" : "")"
+                        @onclick="() => NavigateToDate(date)">
+                    <span class="date-num">@date.Day</span>
+                    @if (hasRecord)
+                    {
+                        <span class="dot"></span>
+                    }
+                </button>
+            }
+            else
+            {
+                <div class="date-cell empty"></div>
+            }
+        }
+    </div>
+</div>
+
+<style>
+    .calendar-container {
+        padding: 1rem;
+        padding-bottom: 80px;
+        color: #eee;
+        background-color: #121212;
+        min-height: 100vh;
+        font-family: 'Segoe UI', sans-serif;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.2rem;
+    }
+    .header h2 { font-size: 18px; margin: 0; }
+    .nav-btn {
+        background: none;
+        border: none;
+        color: #4caf50;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 8px;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+    .day-name {
+        text-align: center;
+        font-weight: 600;
+        color: #888;
+        font-size: 13px;
+        padding-bottom: 8px;
+    }
+    .date-cell {
+        width: 100%;
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #1e1e26;
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 15px;
+        cursor: pointer;
+        position: relative;
+        transition: background 0.15s;
+        gap: 3px;
+    }
+    .date-cell:hover {
+        background: #2a2a35;
+    }
+    .date-cell.empty {
+        background: transparent;
+        cursor: default;
+    }
+    .date-cell.today {
+        border: 2px solid #4CAF50;
+    }
+    .date-cell.has-record {
+        background: rgba(76, 175, 80, 0.15);
+    }
+    .date-cell.has-record.today {
+        background: rgba(76, 175, 80, 0.25);
+    }
+    .date-num { line-height: 1; }
+    .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4CAF50;
+    }
+</style>
+
+@code {
+    private DateTime _displayMonth = DateTime.Today;
+    private List<DateTime> _datesInGrid = new();
+    private HashSet<DateTime> _trainingDates = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        BuildGrid();
+        await LoadTrainingDates();
+    }
+
+    private async Task PrevMonth()
+    {
+        _displayMonth = _displayMonth.AddMonths(-1);
+        BuildGrid();
+        await LoadTrainingDates();
+    }
+
+    private async Task NextMonth()
+    {
+        _displayMonth = _displayMonth.AddMonths(1);
+        BuildGrid();
+        await LoadTrainingDates();
+    }
+
+    private void BuildGrid()
+    {
+        _datesInGrid.Clear();
+        var first = new DateTime(_displayMonth.Year, _displayMonth.Month, 1);
+        int offset = (int)first.DayOfWeek;
+        var start = first.AddDays(-offset);
+        for (int i = 0; i < 42; i++)
+        {
+            _datesInGrid.Add(start.AddDays(i));
+        }
+    }
+
+    private async Task LoadTrainingDates()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        
+        // この月の範囲でトレーニング記録があるセッション日を取得
+        var firstOfMonth = new DateTime(_displayMonth.Year, _displayMonth.Month, 1);
+        var lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
+
+        var dates = await context.TrainingSessions
+            .Where(s => s.Date.Date >= firstOfMonth.Date && s.Date.Date <= lastOfMonth.Date)
+            .Where(s => s.Records.Any()) // 記録が1件以上あるセッションのみ
+            .Select(s => s.Date.Date)
+            .Distinct()
+            .ToListAsync();
+
+        _trainingDates = new HashSet<DateTime>(dates);
+    }
+
+    private void NavigateToDate(DateTime date)
+    {
+        NavigationManager.NavigateTo($"/training/{date:yyyy-MM-dd}");
+    }
+}

@@ -1,0 +1,36 @@
+# Non-Commercial & Personal Use License (非商用・個人利用限定ライセンス)
+
+Copyright (c) 2026
+
+---
+
+## 1. 許諾内容 (Grant of License)
+本ソフトウェアのプログラムコード（C#, Razor, CSS, JS等）およびドキュメント（以下「本ソフトウェア」）の複製、改変、マージ、個人利用を、**純粋な非商用目的（個人のトレーニング記録、学習、プログラミング研究等）に限り**、本規約に従うことを条件に無償で許可します。
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of the software code and associated documentation files (the "Software"), to deal in the Software strictly for **non-commercial, personal fitness tracking, educational, and research purposes**, subject to the following conditions:
+
+---
+
+## 2. 商用利用の厳格な禁止 (Commercial Use Strictly Prohibited)
+**本ソフトウェア（およびその派生物）を、営利目的、商用サービス、有料アプリ、広告収入を目的としたWebサービス、再販売、有料会員向けコンテンツ等への組み込みを含む、いかなる商用目的でも使用・頒布することを固く禁じます。**
+
+**Commercial use, including but not limited to selling, monetizing, distributing as a paid service, integrating into commercial software, or utilizing for commercial enterprise, is strictly prohibited.**
+
+---
+
+## 3. 知的財産権・原著作物の尊重と免責事項 (Third-Party Rights & Content Disclaimer)
+1. **非公式・個人開発ツール**:
+   本ソフトウェアは、筋力トレーニング理論およびピリオダイゼーションに基づく個人の記録・管理を補助するために独自に開発された非公式な個人用ツールです。
+2. **原著作権の帰属**:
+   本システムが参考としているトレーニングプログラム・周期化メソッド・教材に関する一切の著作権、商標権、知的財産権は、それぞれの原著作者（プログラム考案者・権利者）に帰属します。本ソフトウェアの公開は、原権利者の知的財産権を譲渡、移転、または侵害するものではありません。
+3. **元データの再配布禁止の遵守**:
+   本リポジトリおよび公開ソースコードには、**再配布が禁止されている元データ（原著作者が提供するExcelファイル、教材本文、独自コンテンツ等）は一切含まれていません。** 本ソフトウェアは汎用的な記録管理フレームワークであり、利用者が自己の責任において種目名や重量設定を入力・管理する仕組みとなっています。
+4. **権利者からの要請への対応**:
+   原権利者より正当な権利行使または非公開要請等があった場合、直ちに公開停止または必要な修正措置を講じます。
+
+---
+
+## 4. 免責事項 (Disclaimer of Warranty)
+本ソフトウェアは「現状有姿 (AS IS)」で提供され、動作の完全性、特定目的への適合性、安全性、またはトレーニング効果等について、明示・黙示を問わずいかなる保証も行いません。本ソフトウェアの利用または利用不能から生じるいかなる直接的・間接的損害（怪我、事故、データの消失等を含む）についても、開発者および著作権者は一切の責任を負いません。
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

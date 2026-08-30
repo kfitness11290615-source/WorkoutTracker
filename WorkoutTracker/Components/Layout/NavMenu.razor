@@ -1,0 +1,54 @@
+<nav class="bottom-nav">
+    <NavLink class="nav-item" href="/" Match="NavLinkMatch.All">
+        <span class="icon">🏠</span>
+        <span class="label">ホーム</span>
+    </NavLink>
+    <NavLink class="nav-item" href="/calendar">
+        <span class="icon">📅</span>
+        <span class="label">カレンダー</span>
+    </NavLink>
+    <NavLink class="nav-item" href="/training">
+        <span class="icon">🏋️</span>
+        <span class="label">記録</span>
+    </NavLink>
+    <NavLink class="nav-item" href="/progress">
+        <span class="icon">📈</span>
+        <span class="label">進捗</span>
+    </NavLink>
+    <NavLink class="nav-item" href="/settings">
+        <span class="icon">⚙️</span>
+        <span class="label">設定</span>
+    </NavLink>
+</nav>
+
+<style>
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 75px;
+        padding-bottom: env(safe-area-inset-bottom);
+        background-color: #1e1e24;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border-top: 1px solid #333;
+        z-index: 1000;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: #888;
+        text-decoration: none;
+        font-size: 12px;
+    }
+    .nav-item.active {
+        color: #4CAF50;
+    }
+    .icon {
+        font-size: 24px;
+        margin-bottom: 2px;
+    }
+</style>

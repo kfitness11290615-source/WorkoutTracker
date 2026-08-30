@@ -1,0 +1,46 @@
+## =========================================================================
+## .gitignore for WorkoutTracker (.NET 9 Blazor / SQLite)
+## =========================================================================
+
+# Sensitive Configuration
+appsettings.json
+appsettings.Production.json
+appsettings.*.local.json
+*.secrets.json
+!appsettings.Example.json
+!appsettings.Development.json
+
+# SQLite Database & Backups
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+Backups/
+*.backup
+*.bak
+
+# .NET Build Artifacts
+bin/
+obj/
+publish/
+out/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.deps.json
+*.runtimeconfig.json
+
+# IDEs
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# OS Files & Logs
+*.log
+Thumbs.db
+Desktop.ini
+.DS_Store

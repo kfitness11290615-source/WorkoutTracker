@@ -1,0 +1,60 @@
+@page "/"
+@inject NavigationManager NavigationManager
+
+<PageTitle>ホーム</PageTitle>
+
+<div class="home-container">
+    <div class="header">
+        <h1>Workout Tracker</h1>
+        <p class="subtitle">今日も頑張りましょう！</p>
+    </div>
+
+    <div class="actions">
+        <!-- ボタンの type="button" を明示し、onclick が正しく呼び出されるようにします -->
+        <button type="button" class="btn btn-primary btn-large" @onclick="StartTodayWorkout">
+            今日のトレーニングを記録する
+        </button>
+    </div>
+</div>
+
+@code {
+    private void StartTodayWorkout()
+    {
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        NavigationManager.NavigateTo($"/training/{today}");
+    }
+}
+
+<style>
+    .home-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 70vh;
+        text-align: center;
+    }
+    .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        color: #fff;
+    }
+    .subtitle {
+        color: #aaa;
+        font-size: 1.1rem;
+        margin-bottom: 3rem;
+    }
+    .btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.2rem;
+        border-radius: 30px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        cursor: pointer;
+    }
+    .btn-large:active {
+        transform: translateY(2px);
+    }
+</style>

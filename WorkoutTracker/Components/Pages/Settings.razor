@@ -1,0 +1,416 @@
+@page "/settings"
+@inject IDbContextFactory<AppDbContext> DbFactory
+@using Microsoft.EntityFrameworkCore
+@using WorkoutTracker.Data
+@using WorkoutTracker.Models
+
+<div class="settings-page">
+    <div class="header">
+        <h2>設定</h2>
+    </div>
+
+    <!-- Body Part Settings -->
+    <div class="section">
+        <h3>部位別トレーニング日数</h3>
+        @foreach (var bp in BodyParts)
+        {
+            <div class="form-group row">
+                <label>@bp.Name</label>
+                <input type="number" class="dark-input small" @bind="bp.TrainingDaysPerWeek" min="1" max="7" />
+            </div>
+        }
+    </div>
+
+    <!-- Global Base RPE Settings -->
+    <div class="section">
+        <h3>ベース設定 (RPE / Sets)</h3>
+        <p style="font-size: 13px; color: #888; margin-bottom: 15px;">個別設定をしていない種目に適用されます。</p>
+        
+        <h4 class="bp-header">コンパウンド種目 (AMRAP対象)</h4>
+        <div class="wp-grid mb-3">
+            @foreach (var gp in GlobalProfiles.Where(g => g.IsAmrapTracked).OrderBy(g => g.WeekNumber))
+            {
+                <div class="wp-row">
+                    <span class="wp-label">W@(gp.WeekNumber)</span>
+                    <input type="number" step="0.5" class="dark-input tiny" @bind="gp.TargetRpe" />
+                    <span class="wp-sep">/</span>
+                    <input type="number" class="dark-input tiny" @bind="gp.TargetSets" />
+                </div>
+            }
+        </div>
+
+        <h4 class="bp-header">アイソレーション種目 (AMRAP対象外)</h4>
+        <div class="wp-grid">
+            @foreach (var gp in GlobalProfiles.Where(g => !g.IsAmrapTracked).OrderBy(g => g.WeekNumber))
+            {
+                <div class="wp-row">
+                    <span class="wp-label">W@(gp.WeekNumber)</span>
+                    <input type="number" step="0.5" class="dark-input tiny" @bind="gp.TargetRpe" />
+                    <span class="wp-sep">/</span>
+                    <input type="number" class="dark-input tiny" @bind="gp.TargetSets" />
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Exercise Management -->
+    <div class="section">
+        <h3>種目管理</h3>
+        <button class="add-btn" @onclick="ToggleAddForm">＋ 種目を追加</button>
+
+        @if (ShowAddForm)
+        {
+            <div class="add-form card slide-in">
+                <div class="form-group">
+                    <label>部位</label>
+                    <select class="dark-input" @bind="NewExBodyPartId">
+                        @foreach (var bp in BodyParts)
+                        {
+                            <option value="@bp.Id">@bp.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>種目名</label>
+                    <input type="text" class="dark-input" @bind="NewExName" />
+                </div>
+                <div class="form-group">
+                    <label>目標Rep (例: 8〜12)</label>
+                    <input type="text" class="dark-input" @bind="NewExRepRange" />
+                </div>
+                <div class="form-group">
+                    <label>デフォルトSet数</label>
+                    <input type="number" class="dark-input" @bind="NewExDefaultSets" />
+                </div>
+                <div class="form-group">
+                    <label>重量増分</label>
+                    <input type="number" step="0.5" class="dark-input" @bind="NewExWeightIncrement" />
+                </div>
+                <div class="form-group row-check">
+                    <label>AMRAP追跡対象</label>
+                    <label class="switch">
+                        <input type="checkbox" @bind="NewExIsAmrapTracked" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                @if (NewExIsAmrapTracked)
+                {
+                    <div class="form-group">
+                        <label>基準重量</label>
+                        <input type="number" step="0.5" class="dark-input" @bind="NewExBaseWeight" />
+                    </div>
+                }
+                <div class="form-actions">
+                    <button class="save-btn" @onclick="AddNewExercise">追加</button>
+                    <button class="cancel-btn" @onclick="ToggleAddForm">キャンセル</button>
+                </div>
+            </div>
+        }
+
+        @foreach (var bpGroup in Exercises.GroupBy(e => e.BodyPartId))
+        {
+            var bp = BodyParts.FirstOrDefault(b => b.Id == bpGroup.Key);
+            var isExpanded = ExpandedBodyParts.Contains(bpGroup.Key);
+            <h4 class="bp-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" @onclick="() => ToggleBodyPart(bpGroup.Key)">
+                <span>@(bp?.Name ?? "不明")</span>
+                <span style="font-size: 12px; color: #888;">@(isExpanded ? "▲ 閉じる" : "▼ 開く")</span>
+            </h4>
+            
+            @if (isExpanded)
+            {
+                <div class="bp-exercises slide-in">
+                @foreach (var ex in bpGroup)
+                {
+                <div class="exercise-card card">
+                    <input type="text" class="dark-input mb-2" @bind="ex.Name" />
+                    <div class="form-group row">
+                        <label>重量増分</label>
+                        <input type="number" step="0.5" class="dark-input small" @bind="ex.WeightIncrement" />
+                    </div>
+                    <div class="form-group row">
+                        <label>目標Rep</label>
+                        <input type="text" class="dark-input small" @bind="ex.TargetRepRange" />
+                    </div>
+                    <div class="form-group row-check">
+                        <label>AMRAP</label>
+                        <label class="switch">
+                            <input type="checkbox" @bind="ex.IsAmrapTracked" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    @if (ex.IsAmrapTracked)
+                    {
+                        <div class="amrap-section">
+                            <div class="form-group row">
+                                <label>基準重量</label>
+                                <input type="number" step="0.5" class="dark-input small" @bind="ex.BaseWeight" />
+                            </div>
+                            <div class="form-group row">
+                                <label>AMRAP記録</label>
+                                <div>
+                                    <input type="number" step="0.5" class="dark-input tiny" @bind="ex.AmrapWeight" /> kg x 
+                                    <input type="number" class="dark-input tiny" @bind="ex.AmrapRep" /> rep
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    
+                    <div class="form-group row-check mt-3" style="border-top: 1px solid #444; padding-top: 15px;">
+                        <label style="color:#4CAF50; font-weight:bold;">個別設定を使用する</label>
+                        <label class="switch">
+                            <input type="checkbox" @bind="ex.IsCustomWeekProfile" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    @if (ex.IsCustomWeekProfile)
+                    {
+                        <div class="week-profiles-section">
+                            <h5 class="wp-title">各Week設定 (RPE / Sets)</h5>
+                            <div class="wp-grid">
+                                @foreach (var wp in ex.WeekProfiles.OrderBy(w => w.WeekNumber))
+                                {
+                                    <div class="wp-row">
+                                        <span class="wp-label">W@(wp.WeekNumber)</span>
+                                        <input type="number" step="0.5" class="dark-input tiny" @bind="wp.TargetRpe" />
+                                        <span class="wp-sep">/</span>
+                                        <input type="number" class="dark-input tiny" @bind="wp.TargetSets" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <button class="remove-btn mt-3" @onclick="() => DeleteExercise(ex)">この種目を削除</button>
+                </div>
+                }
+                </div>
+            }
+        }
+    </div>
+
+    <div class="save-all">
+        <button class="save-btn w-100" @onclick="SaveChanges">設定を保存</button>
+        @if (ShowSaveSuccess)
+        {
+            <div class="save-success-toast">
+                ✓ 保存しました
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .settings-page { padding: 16px; padding-bottom: 100px; background: #121212; color: #fff; min-height: 100vh; font-family: sans-serif; }
+    .header h2 { margin: 0 0 20px 0; }
+    .section { margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 20px; }
+    .section h3 { color: #4CAF50; margin-bottom: 15px; font-size: 18px; }
+    .card { background: #2c2c34; border-radius: 8px; padding: 16px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .add-btn { background: transparent; color: #4CAF50; border: 1px dashed #4CAF50; border-radius: 8px; padding: 12px; width: 100%; margin-bottom: 15px; cursor: pointer; font-size: 16px; }
+    .dark-input { background: #1e1e24; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 10px; width: 100%; box-sizing: border-box; font-size: 16px; }
+    .dark-input.small { width: 80px; }
+    .dark-input.tiny { width: 60px; display: inline-block; padding: 6px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #aaa; }
+    .form-group.row { display: flex; justify-content: space-between; align-items: center; }
+    .form-group.row label { margin-bottom: 0; }
+    .form-group.row-check { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+    .form-group.row-check label { margin-bottom: 0; }
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .save-btn { background: #4CAF50; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; cursor: pointer; flex: 1; font-size: 16px; }
+    .cancel-btn { background: #555; color: white; border: none; border-radius: 8px; padding: 12px 20px; cursor: pointer; flex: 1; font-size: 16px; }
+    .w-100 { width: 100%; }
+    .mb-2 { margin-bottom: 10px; }
+    .bp-header { margin: 20px 0 10px; border-left: 4px solid #4CAF50; padding-left: 10px; font-size: 16px; }
+    .amrap-section { background: #1e1e24; padding: 12px; border-radius: 6px; margin-top: 15px; }
+    .slide-in { animation: slideIn 0.3s ease-out forwards; }
+    @@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; }
+    input:checked + .slider { background-color: #4CAF50; }
+    input:checked + .slider:before { transform: translateX(26px); }
+    .slider.round { border-radius: 24px; }
+    .slider.round:before { border-radius: 50%; }
+
+    .week-profiles-section { margin-top: 20px; background: #1e1e24; padding: 12px; border-radius: 6px; }
+    .wp-title { margin: 0 0 10px 0; font-size: 13px; color: #aaa; text-align: center; }
+    .wp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .wp-row { display: flex; align-items: center; justify-content: space-between; background: #2c2c34; padding: 6px 10px; border-radius: 4px; }
+    .wp-label { font-size: 13px; color: #4CAF50; font-weight: bold; width: 30px; }
+    .wp-sep { color: #888; font-size: 12px; margin: 0 4px; }
+    .remove-btn { width: 100%; background: transparent; color: #ff5252; border: 1px solid #ff5252; border-radius: 8px; padding: 10px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .remove-btn:active { background: rgba(255, 82, 82, 0.1); }
+    .mt-3 { margin-top: 15px; }
+    .save-all { position: relative; margin-top: 20px; }
+    .save-success-toast {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(76, 175, 80, 0.9);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+        animation: fadeInOut 2s ease-in-out forwards;
+        pointer-events: none;
+    }
+    @@keyframes fadeInOut {
+        0% { opacity: 0; transform: translate(-50%, 10px); }
+        15% { opacity: 1; transform: translate(-50%, 0); }
+        85% { opacity: 1; transform: translate(-50%, 0); }
+        100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+</style>
+
+@code {
+    private List<BodyPart> BodyParts = new();
+    private List<Exercise> Exercises = new();
+    private List<GlobalWeekProfile> GlobalProfiles = new();
+
+    private bool ShowAddForm = false;
+    private bool ShowSaveSuccess = false;
+    private HashSet<int> ExpandedBodyParts = new();
+    
+    private int NewExBodyPartId;
+    private string NewExName = "";
+    private string NewExRepRange = "8〜12";
+    private int NewExDefaultSets = 3;
+    private double NewExWeightIncrement = 2.5;
+    private bool NewExIsAmrapTracked = false;
+    private double NewExBaseWeight = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+        if (BodyParts.Any())
+        {
+            NewExBodyPartId = BodyParts.First().Id;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        BodyParts = await context.BodyParts.ToListAsync();
+        GlobalProfiles = await context.GlobalWeekProfiles.ToListAsync();
+        Exercises = await context.Exercises
+            .Include(e => e.BodyPart)
+            .Include(e => e.WeekProfiles)
+            .ToListAsync();
+    }
+
+    private void ToggleAddForm()
+    {
+        ShowAddForm = !ShowAddForm;
+    }
+
+    private void ToggleBodyPart(int bodyPartId)
+    {
+        if (ExpandedBodyParts.Contains(bodyPartId))
+            ExpandedBodyParts.Remove(bodyPartId);
+        else
+            ExpandedBodyParts.Add(bodyPartId);
+    }
+
+    private async Task AddNewExercise()
+    {
+        if (string.IsNullOrWhiteSpace(NewExName)) return;
+
+        await using var context = await DbFactory.CreateDbContextAsync();
+        
+        var ex = new Exercise
+        {
+            BodyPartId = NewExBodyPartId,
+            Name = NewExName,
+            TargetRepRange = NewExRepRange,
+            DefaultSetCount = NewExDefaultSets,
+            WeightIncrement = NewExWeightIncrement,
+            IsAmrapTracked = NewExIsAmrapTracked,
+            BaseWeight = NewExIsAmrapTracked ? NewExBaseWeight : 0
+        };
+
+        context.Exercises.Add(ex);
+        await context.SaveChangesAsync();
+
+        var profiles = new List<WeekProfile>();
+        for (int w = 1; w <= 6; w++)
+        {
+            var p = new WeekProfile
+            {
+                ExerciseId = ex.Id,
+                WeekNumber = w
+            };
+
+            double baseRpe = 7.0; // Assuming base RPE is 7.0 for the generation pattern
+
+            if (ex.IsAmrapTracked)
+            {
+                // base, base+0.5, base+1.0, 9.0, 9.5, 7.0
+                p.TargetRpe = w switch { 1 => baseRpe, 2 => baseRpe + 0.5, 3 => baseRpe + 1.0, 4 => 9.0, 5 => 9.5, 6 => 7.0, _ => baseRpe };
+                // sets (default, default, default, default, 2, 2)
+                p.TargetSets = w switch { 5 => 2, 6 => 2, _ => ex.DefaultSetCount };
+            }
+            else
+            {
+                // base, base+0.5, base+1.0, base+1.0, base+0.5, 7.5
+                p.TargetRpe = w switch { 1 => baseRpe, 2 => baseRpe + 0.5, 3 => baseRpe + 1.0, 4 => baseRpe + 1.0, 5 => baseRpe + 0.5, 6 => 7.5, _ => baseRpe };
+                // sets (default, min(default+2,5), min(default+2,5), default, min(default+2,5), 2)
+                p.TargetSets = w switch { 
+                    1 => ex.DefaultSetCount,
+                    2 => Math.Min(ex.DefaultSetCount + 2, 5),
+                    3 => Math.Min(ex.DefaultSetCount + 2, 5),
+                    4 => ex.DefaultSetCount,
+                    5 => Math.Min(ex.DefaultSetCount + 2, 5),
+                    6 => 2,
+                    _ => ex.DefaultSetCount 
+                };
+            }
+            profiles.Add(p);
+        }
+
+        context.WeekProfiles.AddRange(profiles);
+        await context.SaveChangesAsync();
+
+        // reset form
+        NewExName = "";
+        ShowAddForm = false;
+        
+        await LoadDataAsync();
+    }
+
+    private async Task SaveChanges()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        
+        foreach (var bp in BodyParts)
+        {
+            context.Entry(bp).State = EntityState.Modified;
+        }
+
+        context.GlobalWeekProfiles.UpdateRange(GlobalProfiles);
+        context.Exercises.UpdateRange(Exercises);
+
+        await context.SaveChangesAsync();
+
+        ShowSaveSuccess = true;
+        StateHasChanged();
+        
+        await Task.Delay(2000);
+        
+        ShowSaveSuccess = false;
+        StateHasChanged();
+    }
+
+    private async Task DeleteExercise(Exercise ex)
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        context.Exercises.Remove(ex);
+        await context.SaveChangesAsync();
+        await LoadDataAsync();
+    }
+}

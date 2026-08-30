@@ -1,0 +1,208 @@
+@page "/progress"
+@using Microsoft.EntityFrameworkCore
+@using WorkoutTracker.Data
+@using WorkoutTracker.Models
+@using WorkoutTracker.Services
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IJSRuntime JSRuntime
+
+<div class="page-container">
+    <h2 class="page-title">進捗 (AMRAP e1RM)</h2>
+
+    <div class="form-group row mb-4">
+        <label>対象種目</label>
+        <select class="dark-input" @onchange="OnExerciseSelected">
+            <option value="0">種目を選択...</option>
+            @foreach (var ex in AmrapExercises)
+            {
+                <option value="@ex.Id">@ex.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (SelectedExerciseId > 0)
+    {
+        if (ChartDataLoaded && ChartLabels.Count > 0)
+        {
+            <div class="chart-container">
+                <canvas id="progressChart"></canvas>
+            </div>
+            
+            <div class="stats-card mt-3">
+                <div class="stat-row">
+                    <span>開始時 e1RM</span>
+                    <strong>@(ChartData.First().ToString("F1")) kg</strong>
+                </div>
+                <div class="stat-row">
+                    <span>最新 e1RM</span>
+                    <strong>@(ChartData.Last().ToString("F1")) kg</strong>
+                </div>
+                <div class="stat-row">
+                    <span>最大 e1RM</span>
+                    <strong style="color: #4CAF50;">@(ChartData.Max().ToString("F1")) kg</strong>
+                </div>
+            </div>
+        }
+        else if (ChartDataLoaded)
+        {
+            <p class="empty-msg">この種目の記録はまだありません。</p>
+        }
+    }
+</div>
+
+<style>
+    .page-container {
+        padding: 20px 20px 80px 20px;
+        color: #e0e0e0;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .page-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 25px;
+        color: #fff;
+    }
+    .dark-input {
+        background-color: #2a2a35;
+        border: 1px solid #444;
+        color: #fff;
+        padding: 10px;
+        border-radius: 8px;
+        width: 100%;
+        outline: none;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+        background: #1e1e24;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .empty-msg {
+        text-align: center;
+        color: #888;
+        padding: 30px;
+        background: #1e1e24;
+        border-radius: 12px;
+    }
+    .stats-card {
+        background: #1e1e24;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #333;
+    }
+    .stat-row:last-child {
+        border-bottom: none;
+    }
+</style>
+
+@code {
+    private List<Exercise> AmrapExercises = new();
+    private int SelectedExerciseId = 0;
+
+    private bool ChartDataLoaded = false;
+    private List<string> ChartLabels = new();
+    private List<double> ChartData = new();
+    private List<string> ChartTooltips = new();
+    
+    private double MinY = 0;
+    private double MaxY = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+        AmrapExercises = await context.Exercises
+            .Where(e => e.IsAmrapTracked)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+    }
+
+    private async Task OnExerciseSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int id))
+        {
+            SelectedExerciseId = id;
+            if (id > 0)
+            {
+                await LoadChartData(id);
+            }
+            else
+            {
+                ChartDataLoaded = false;
+            }
+        }
+    }
+
+    private async Task LoadChartData(int exerciseId)
+    {
+        ChartDataLoaded = false;
+        ChartLabels.Clear();
+        ChartData.Clear();
+        ChartTooltips.Clear();
+
+        await using var context = await DbFactory.CreateDbContextAsync();
+        
+        var records = await context.ExerciseRecords
+            .Include(r => r.Session)
+            .Where(r => r.ExerciseId == exerciseId && r.Session != null)
+            .OrderBy(r => r.Session!.Date)
+            .ToListAsync();
+
+        if (records.Count > 0)
+        {
+            // 日付ごとにグループ化し、その日の最大e1RMを算出
+            var grouped = records.GroupBy(r => r.Session!.Date.Date).ToList();
+
+            foreach (var group in grouped)
+            {
+                var bestSet = group.OrderByDescending(r => E1RMCalculator.Calculate(r.Weight, r.Rep, r.Rpe)).First();
+                
+                double maxE1Rm = E1RMCalculator.Calculate(bestSet.Weight, bestSet.Rep, bestSet.Rpe);
+                
+                ChartLabels.Add(group.Key.ToString("MM/dd"));
+                ChartData.Add(Math.Round(maxE1Rm, 1));
+                
+                string tooltip = $"Best: {bestSet.Weight}kg × {bestSet.Rep} (RPE {bestSet.Rpe})";
+                ChartTooltips.Add(tooltip);
+            }
+
+            if (ChartData.Count > 0)
+            {
+                double minVal = ChartData.Min();
+                double maxVal = ChartData.Max();
+                
+                // メモリのゆとりを持たせる
+                MinY = Math.Floor(minVal * 0.95 / 2.5) * 2.5;
+                MaxY = Math.Ceiling(maxVal * 1.05 / 2.5) * 2.5;
+            }
+
+            ChartDataLoaded = true;
+            
+            // グラフ描画のためにStateHasChangedを呼び出し、要素がレンダリングされた直後にJSを実行
+            StateHasChanged();
+            await Task.Delay(100); // DOMレンダリング待機
+            
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("renderProgressChart", "progressChart", ChartLabels, ChartData, ChartTooltips, MinY, MaxY);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chart rendering failed: {ex.Message}. Please try refreshing the page.");
+            }
+        }
+        else
+        {
+            ChartDataLoaded = true;
+        }
+    }
+}

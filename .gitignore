@@ -1,0 +1,101 @@
+## =========================================================================
+## .gitignore for WorkoutTracker (.NET 9 Blazor / SQLite / Python Tools)
+## =========================================================================
+
+# --------------------------------------------------------------------------
+# Proprietary / Original Program Data (再配布禁止の元データ・Excelファイル)
+# --------------------------------------------------------------------------
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+program.xlsx
+260823_*.xlsx
+read_excel.py
+extract_weeks.py
+excel_output.json
+excel_output_utf8.json
+
+# --------------------------------------------------------------------------
+# Security & Sensitive Configuration (Credentials & Secrets)
+# --------------------------------------------------------------------------
+**/appsettings.json
+**/appsettings.Production.json
+**/appsettings.*.local.json
+*.secrets.json
+!**/appsettings.Example.json
+!**/appsettings.Development.json
+
+# --------------------------------------------------------------------------
+# SQLite Database Files & Backups
+# --------------------------------------------------------------------------
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+**/Backups/
+*.backup
+*.bak
+
+# --------------------------------------------------------------------------
+# .NET Build Artifacts & Output Directories
+# --------------------------------------------------------------------------
+**/bin/
+**/obj/
+**/publish/
+**/out/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.deps.json
+*.runtimeconfig.json
+
+# --------------------------------------------------------------------------
+# Visual Studio & IDE Artifacts
+# --------------------------------------------------------------------------
+.vs/
+**/[Bb]in/
+**/[Oo]bj/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.ide/
+*.ncb
+*.opendb
+*.VC.db
+
+# --------------------------------------------------------------------------
+# VS Code
+# --------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# --------------------------------------------------------------------------
+# Python Cache & Virtual Environments
+# --------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+
+# --------------------------------------------------------------------------
+# Operating System Files & Logs
+# --------------------------------------------------------------------------
+*.log
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.Spotlight-V100
+.Trashes
