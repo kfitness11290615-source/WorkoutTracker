@@ -70,11 +70,26 @@
                     {
                         <div class="ref-row last">
                             <div class="ref-item">
-                                <span class="ref-label">前回実績 (@widget.LastRecordDate)</span>
+                                <div class="ref-header">
+                                    <span class="ref-label">前回実績 (@widget.LastRecordDate)</span>
+                                    <button type="button" class="history-link-btn" @onclick="() => OpenHistoryModal(widget.Exercise)">全履歴 📋</button>
+                                </div>
                                 @foreach (var prev in widget.LastRecords)
                                 {
                                     <span class="ref-value">Set @prev.SetNumber: @prev.Weight kg × @prev.Rep rep (RPE @prev.Rpe)</span>
                                 }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="ref-row last ref-row-empty">
+                            <div class="ref-item">
+                                <div class="ref-header">
+                                    <span class="ref-label-sub">過去の実績</span>
+                                    <button type="button" class="history-link-btn" @onclick="() => OpenHistoryModal(widget.Exercise)">過去の履歴 📋</button>
+                                </div>
+                                <span class="ref-value-muted">前回実績はありません</span>
                             </div>
                         </div>
                     }
@@ -161,6 +176,69 @@
                                     <span class="already-badge">追加済</span>
                                 }
                             </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* === 過去履歴モーダル === *@
+    @if (ShowHistoryModal && HistoryExercise != null)
+    {
+        <div class="modal-overlay" @onclick="CloseHistoryModal">
+            <div class="modal-content history-modal-content" @onclick:stopPropagation="true">
+                <div class="history-modal-header">
+                    <div class="history-title-block">
+                        <span class="widget-bodypart">@HistoryExercise.BodyPart?.Name</span>
+                        <h3 class="history-modal-title">@HistoryExercise.Name の履歴</h3>
+                    </div>
+                    <button type="button" class="history-close-btn" @onclick="CloseHistoryModal">✕</button>
+                </div>
+
+                @if (IsLoadingHistory)
+                {
+                    <div class="history-loading">
+                        <div class="spinner"></div>
+                        <p>履歴を読み込み中...</p>
+                    </div>
+                }
+                else if (HistoryGroups.Count == 0)
+                {
+                    <div class="history-empty">
+                        <p>過去のトレーニング記録はありません。</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="history-list">
+                        @foreach (var group in HistoryGroups)
+                        {
+                            <div class="history-card">
+                                <div class="history-card-header">
+                                    <div class="history-date-info">
+                                        <span class="history-date">@group.Date.ToString("yyyy/MM/dd (ddd)")</span>
+                                        @if (group.WeekInCycle > 0)
+                                        {
+                                            <span class="history-week">Week @group.WeekInCycle@(!string.IsNullOrEmpty(group.WeekPurpose) ? $" ({group.WeekPurpose})" : "")</span>
+                                        }
+                                    </div>
+                                    @if (group.BestE1RM > 0)
+                                    {
+                                        <span class="history-e1rm-badge">Best e1RM: @group.BestE1RM.ToString("F1") kg</span>
+                                    }
+                                </div>
+                                <div class="history-sets">
+                                    @foreach (var rec in group.Records)
+                                    {
+                                        <div class="history-set-row">
+                                            <span class="history-set-num">Set @rec.SetNumber</span>
+                                            <span class="history-set-val">@rec.Weight kg × @rec.Rep rep</span>
+                                            <span class="history-set-rpe">RPE @rec.Rpe</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
                 }

@@ -1,4 +1,0 @@
-{
-    "appService.defaultWebAppToDeploy": "/subscriptions/95e4133e-3b18-43ce-8e15-1c7384ea8b6c/resourceGroups/my-workout-tracker_group/providers/Microsoft.Web/sites/my-workout-tracker",
-    "appService.deploySubpath": "WorkoutTracker\\publish"
-}

@@ -30,6 +30,12 @@ public partial class TrainingLog
     // アクティブな種目ウィジェット一覧
     private List<ExerciseWidget> ActiveExercises = new();
 
+    // 過去履歴モーダル用
+    private bool ShowHistoryModal;
+    private bool IsLoadingHistory;
+    private Exercise? HistoryExercise;
+    private List<ExerciseHistoryGroup> HistoryGroups = new();
+
     protected override async Task OnInitializedAsync()
     {
         if (string.IsNullOrEmpty(DateString) || !DateTime.TryParse(DateString, out CurrentDate))
@@ -300,6 +306,97 @@ public partial class TrainingLog
         ActiveExercises.Remove(widget);
     }
 
+    // === 過去履歴モーダル関連 ===
+    private async Task OpenHistoryModal(Exercise exercise)
+    {
+        HistoryExercise = exercise;
+        ShowHistoryModal = true;
+        IsLoadingHistory = true;
+        HistoryGroups.Clear();
+
+        await using var context = await DbFactory.CreateDbContextAsync();
+
+        var records = await context.ExerciseRecords
+            .Include(r => r.Session)
+            .Where(r => r.ExerciseId == exercise.Id && r.Session != null && r.Session.Date.Date < CurrentDate.Date)
+            .OrderByDescending(r => r.Session!.Date)
+            .ThenBy(r => r.SetNumber)
+            .ToListAsync();
+
+        if (records.Count > 0)
+        {
+            // 種目に紐づく部位のトレーニング頻度（週あたり日数）を取得
+            var bodyPart = await context.BodyParts.FindAsync(exercise.BodyPartId);
+            int daysPerWeek = (bodyPart != null && bodyPart.TrainingDaysPerWeek > 0) ? bodyPart.TrainingDaysPerWeek : 1;
+
+            var relatedExerciseIds = await context.Exercises
+                .Where(e => e.BodyPartId == exercise.BodyPartId)
+                .Select(e => e.Id)
+                .ToListAsync();
+
+            // この部位のトレーニングが含まれる全セッション日（昇順・ユニーク）を取得
+            var sessionDates = await context.ExerciseRecords
+                .Where(r => relatedExerciseIds.Contains(r.ExerciseId) && r.Session != null)
+                .Select(r => r.Session!.Date.Date)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToListAsync();
+
+            var dateToWeekMap = new Dictionary<DateTime, (int Week, int Cycle)>();
+            for (int i = 0; i < sessionDates.Count; i++)
+            {
+                int sessionIndex = i + 1;
+                int week = ((sessionIndex - 1) / daysPerWeek) % 6 + 1;
+                int cycle = ((sessionIndex - 1) / (daysPerWeek * 6)) + 1;
+                dateToWeekMap[sessionDates[i]] = (week, cycle);
+            }
+
+            HistoryGroups = records
+                .GroupBy(r => r.Session!.Date.Date)
+                .Select(g =>
+                {
+                    int week = 1;
+                    int cycle = 1;
+                    if (dateToWeekMap.TryGetValue(g.Key, out var val))
+                    {
+                        week = val.Week;
+                        cycle = val.Cycle;
+                    }
+
+                    return new ExerciseHistoryGroup
+                    {
+                        Date = g.Key,
+                        CycleNumber = cycle,
+                        WeekInCycle = week,
+                        WeekPurpose = GetWeekPurpose(week),
+                        Records = g.ToList(),
+                        BestE1RM = g.Max(r => E1RMCalculator.Calculate(r.Weight, r.Rep, r.Rpe))
+                    };
+                })
+                .ToList();
+        }
+
+        IsLoadingHistory = false;
+    }
+
+    private static string GetWeekPurpose(int week) => week switch
+    {
+        1 => "漸進①",
+        2 => "漸進②",
+        3 => "漸進③",
+        4 => "高強度",
+        5 => "AMRAP評価",
+        6 => "疲労抜き",
+        _ => ""
+    };
+
+    private void CloseHistoryModal()
+    {
+        ShowHistoryModal = false;
+        HistoryExercise = null;
+        HistoryGroups.Clear();
+    }
+
     // === ウィジェットモデル ===
     private class ExerciseWidget
     {
@@ -316,5 +413,16 @@ public partial class TrainingLog
         public double NewWeight { get; set; }
         public int NewRep { get; set; }
         public double NewRpe { get; set; }
+    }
+
+    // === 履歴表示用グループモデル ===
+    private class ExerciseHistoryGroup
+    {
+        public DateTime Date { get; set; }
+        public int CycleNumber { get; set; }
+        public int WeekInCycle { get; set; }
+        public string WeekPurpose { get; set; } = "";
+        public List<ExerciseRecord> Records { get; set; } = new();
+        public double BestE1RM { get; set; }
     }
 }

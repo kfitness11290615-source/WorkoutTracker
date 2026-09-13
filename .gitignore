@@ -19,12 +19,9 @@ excel_output_utf8.json
 # --------------------------------------------------------------------------
 # Security & Sensitive Configuration (Credentials & Secrets)
 # --------------------------------------------------------------------------
-**/appsettings.json
-**/appsettings.Production.json
-**/appsettings.*.local.json
-*.secrets.json
+**/appsettings*.json
 !**/appsettings.Example.json
-!**/appsettings.Development.json
+*.secrets.json
 
 # --------------------------------------------------------------------------
 # SQLite Database Files & Backups
@@ -70,11 +67,8 @@ excel_output_utf8.json
 # --------------------------------------------------------------------------
 # VS Code
 # --------------------------------------------------------------------------
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/
+**/.vscode/
 
 # --------------------------------------------------------------------------
 # Python Cache & Virtual Environments

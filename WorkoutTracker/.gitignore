@@ -3,12 +3,9 @@
 ## =========================================================================
 
 # Sensitive Configuration
-appsettings.json
-appsettings.Production.json
-appsettings.*.local.json
-*.secrets.json
+appsettings*.json
 !appsettings.Example.json
-!appsettings.Development.json
+*.secrets.json
 
 # SQLite Database & Backups
 *.db
@@ -34,6 +31,7 @@ out/
 
 # IDEs
 .vs/
+.vscode/
 *.user
 *.userosscache
 *.sln.docstates
